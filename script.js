@@ -42,24 +42,28 @@ const Gameboard = (function() {
 })();
 
 const Game = (function() {
+    let gameEnded = false;
+
     // function to update field when player has played; if already played in this square, do nothing
     function updateField() {
-        if (Gameboard.getField(getRow(this), getCol(this)) === undefined) {
-            Gameboard.setField(getRow(this), getCol(this), getPlayerTurn());
-            playerTurn = (playerTurn + 1) % 2; // switch player's turn
-            log("Field updated. Row = " + getRow(this) + ". Col = " + getCol(this) + ".")
-        }
+        if (!gameEnded) {
+            if (Gameboard.getField(getRow(this), getCol(this)) === undefined) {
+                Gameboard.setField(getRow(this), getCol(this), getPlayerTurn());
+                playerTurn = incrementPlayerTurn(playerTurn); // switch player's turn
+                log("Field updated. Row = " + getRow(this) + ". Col = " + getCol(this) + ".")
+            }
 
-        // check if anybody has won
-        if (checkIfWinner()) {
-            displayWinner();
-            return;
-        } else if (checkIf9Moves()) {
-            displayTie();
+            // check if anybody has won
+            if (checkIfWinner()) {
+                displayWinner();
+                return;
+            } else if (checkIf9Moves()) {
+                displayTie();
+            }
         }
     }
 
-    const getRow = (el) => el.id[1]; //shift up b/c underscore added to id's
+    const getRow = (el) => el.id[1]; //shift up index b/c underscore added to id's
     const getCol = (el) => el.id[2];
 
     // check if there is a victor after each play
@@ -114,10 +118,17 @@ const Game = (function() {
     }
 
     function displayWinner() {
+        let winner = playerTurns[incrementPlayerTurn(playerTurn)]; // needs to get incremented b/c updateField bumps it
+        popupText.textContent = "Winner = " + winner;
+        popupWindow.classList.toggle("visible");
+        gameEnded = true;
         log("winner")
     }
 
     function displayTie() {
+        popupText.textContent = "It's a tie.";
+        popupWindow.classList.toggle("visible");
+        gameEnded = true;
         log("tie")
     }
 
@@ -136,11 +147,31 @@ const Game = (function() {
     const playerTurns = ["X", "O"];
     let playerTurn = 0;
 
+    function incrementPlayerTurn(x) {
+        return (x + 1) % 2;
+    }
+
     function getPlayerTurn() {
         return playerTurns[playerTurn];
     }
 
-    return { getPlayerTurn, updateField };
+    function resetClicked() {
+        Gameboard.reset(undefined);
+        playerTurn = 0;
+        gameEnded = false;
+    }
+
+    function playAgainClicked() {
+        Gameboard.reset(undefined);
+        playerTurn = 0;
+        popupWindow.classList.toggle("visible");
+        gameEnded = false;
+    }
+
+    const popupText = document.querySelector("#popup-text");
+    const popupWindow = document.querySelector("#popup");
+
+    return { getPlayerTurn, updateField, resetClicked, playAgainClicked };
 })();
 
 const PlayerFactory = function(name) {}
@@ -157,5 +188,8 @@ function allSame(arr) {
 
 // add listeners to game board squares to start
 Gameboard.getAllBoardElements().forEach(el => el.addEventListener("click", Game.updateField));
-
 Gameboard.reset(undefined);
+resetButton = document.querySelector("#reset");
+resetButton.addEventListener("click", Game.resetClicked);
+playAgainButton = document.querySelector("#play-again");
+playAgainButton.addEventListener("click", Game.playAgainClicked);
